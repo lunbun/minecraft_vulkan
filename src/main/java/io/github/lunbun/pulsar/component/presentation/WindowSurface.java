@@ -1,5 +1,6 @@
-package io.github.lunbun.pulsar.component;
+package io.github.lunbun.pulsar.component.presentation;
 
+import io.github.lunbun.pulsar.component.setup.InstanceManager;
 import org.lwjgl.glfw.GLFWVulkan;
 import org.lwjgl.system.MemoryStack;
 import org.lwjgl.vulkan.KHRSurface;

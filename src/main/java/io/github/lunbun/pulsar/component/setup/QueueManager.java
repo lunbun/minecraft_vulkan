@@ -1,4 +1,4 @@
-package io.github.lunbun.pulsar.component;
+package io.github.lunbun.pulsar.component.setup;
 
 import io.github.lunbun.pulsar.struct.QueueFamily;
 import io.github.lunbun.pulsar.util.QueueFamilyIndices;

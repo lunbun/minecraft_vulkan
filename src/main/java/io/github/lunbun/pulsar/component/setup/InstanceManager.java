@@ -1,4 +1,4 @@
-package io.github.lunbun.pulsar.component;
+package io.github.lunbun.pulsar.component.setup;
 
 import io.github.lunbun.pulsar.util.PointerUtils;
 import io.github.lunbun.pulsar.util.ValidationLayerUtils;

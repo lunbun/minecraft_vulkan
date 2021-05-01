@@ -1,6 +1,7 @@
-package io.github.lunbun.pulsar.component;
+package io.github.lunbun.pulsar.component.setup;
 
-import io.github.lunbun.pulsar.struct.DeviceExtension;
+import io.github.lunbun.pulsar.component.presentation.SwapChain;
+import io.github.lunbun.pulsar.component.presentation.WindowSurface;
 import io.github.lunbun.pulsar.struct.DeviceType;
 import io.github.lunbun.pulsar.struct.GraphicsCardPreference;
 import io.github.lunbun.pulsar.util.DeviceUtils;

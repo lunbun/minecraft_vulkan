@@ -1,7 +1,7 @@
 package io.github.lunbun.pulsar.util;
 
 import io.github.lunbun.quasar.Quasar;
-import io.github.lunbun.pulsar.component.InstanceManager;
+import io.github.lunbun.pulsar.component.setup.InstanceManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.lwjgl.system.Configuration;
