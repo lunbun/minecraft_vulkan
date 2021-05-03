@@ -5,7 +5,7 @@ import io.github.lunbun.pulsar.component.setup.PhysicalDeviceManager;
 import io.github.lunbun.pulsar.struct.GraphicsCardPreference;
 import io.github.lunbun.pulsar.struct.QueueFamily;
 import io.github.lunbun.pulsar.util.DeviceUtils;
-import io.github.lunbun.pulsar.util.MathUtil;
+import io.github.lunbun.pulsar.util.MathUtils;
 import io.github.lunbun.pulsar.util.QueueFamilyIndices;
 import it.unimi.dsi.fastutil.longs.LongArrayList;
 import org.lwjgl.glfw.GLFW;
@@ -77,7 +77,7 @@ public final class SwapChain {
     }
 
     private VkExtent2D chooseSwapExtent(VkSurfaceCapabilitiesKHR capabilities, long window) {
-        if (capabilities.currentExtent().width() != MathUtil.UINT32_MAX) {
+        if (capabilities.currentExtent().width() != MathUtils.UINT32_MAX) {
             return capabilities.currentExtent();
         } else {
             try (MemoryStack stack = MemoryStack.stackPush()) {
@@ -87,9 +87,9 @@ public final class SwapChain {
 
                 VkExtent2D actualExtent = VkExtent2D.mallocStack().set(width.get(0), height.get(0));
 
-                actualExtent.width(MathUtil.clamp(capabilities.minImageExtent().width(),
+                actualExtent.width(MathUtils.clamp(capabilities.minImageExtent().width(),
                         capabilities.maxImageExtent().width(), actualExtent.width()));
-                actualExtent.height(MathUtil.clamp(capabilities.minImageExtent().height(),
+                actualExtent.height(MathUtils.clamp(capabilities.minImageExtent().height(),
                         capabilities.maxImageExtent().height(), actualExtent.height()));
 
                 return actualExtent;

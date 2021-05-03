@@ -1,6 +1,6 @@
 package io.github.lunbun.pulsar.util;
 
-public class MathUtil {
+public class MathUtils {
     public static final int UINT32_MAX = 0xffffffff;
 
     public static int clamp(int min, int max, int value) {

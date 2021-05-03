@@ -1,5 +1,7 @@
 package io.github.lunbun.quasar.client.impl.system.render;
 
+import io.github.lunbun.pulsar.component.pipeline.GraphicsPipeline;
+import io.github.lunbun.pulsar.component.pipeline.Shader;
 import io.github.lunbun.pulsar.struct.DeviceExtension;
 import io.github.lunbun.pulsar.struct.DeviceType;
 import io.github.lunbun.pulsar.struct.GraphicsCardPreference;
@@ -13,6 +15,7 @@ import io.github.lunbun.quasar.client.impl.message.CreateWindowMessage;
 import io.github.lunbun.quasar.client.impl.message.MessageImpl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.lwjgl.glfw.GLFW;
 
 public class RenderSystem extends System {
     private static final Logger LOGGER = LogManager.getLogger("Quasar");
@@ -39,6 +42,9 @@ public class RenderSystem extends System {
             );
             this.pulsar.requestGraphicsCard(preference);
             this.pulsar.initialize();
+
+            Shader shader = new Shader("shader/shader.vert", "shader/shader.frag");
+            GraphicsPipeline pipeline = this.pulsar.pipelines.createPipeline("pipeline1", shader);
 
             MessageBus.postMessage(MessageImpl.CLEANUP);
         } else if (data.type == MessageImpl.CLEANUP) {

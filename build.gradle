@@ -14,6 +14,15 @@ configurations {
     extraLibs
 }
 
+void lwjglLibrary(String name) {
+    dependencies.extraLibs "org.lwjgl:lwjgl-${name}:${lwjgl_version}"
+    dependencies.extraLibs "org.lwjgl:lwjgl-${name}:${lwjgl_version}:natives-macos"
+    if ("vulkan" != name) {
+        dependencies.extraLibs "org.lwjgl:lwjgl-${name}:${lwjgl_version}:natives-windows"
+        dependencies.extraLibs "org.lwjgl:lwjgl-${name}:${lwjgl_version}:natives-linux"
+    }
+}
+
 dependencies {
     //to change the versions see the gradle.properties file
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
@@ -24,13 +33,17 @@ dependencies {
 
     // PSA: Some older mods, compiled on Loom 0.2.1, might have outdated Maven POMs.
     // You may need to force-disable transitiveness on them.
+
+    // we have to use 3.2.3 instead of minecraft's 3.2.2 for shaderc support, so we need to override all lwjgl libraries
     extraLibs "org.lwjgl:lwjgl:${lwjgl_version}"
-    extraLibs "org.lwjgl:lwjgl-vulkan:${lwjgl_version}"
-    extraLibs "org.lwjgl:lwjgl-vulkan:${lwjgl_version}:natives-macos"
+
+    lwjglLibrary "vulkan"
+    lwjglLibrary "glfw"
+    lwjglLibrary "shaderc"
+    lwjglLibrary "stb"
 
     // used only for testing
-    extraLibs "org.lwjgl:lwjgl-opengl:${lwjgl_version}"
-    extraLibs "org.lwjgl:lwjgl-opengl:${lwjgl_version}:natives-windows"
+    lwjglLibrary "opengl"
 
     extraLibs "org.apache.commons:commons-math3:${commons_math_version}"
 
