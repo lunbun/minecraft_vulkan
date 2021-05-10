@@ -22,6 +22,10 @@ public final class LogicalDevice {
         VK10.vkDestroyDevice(this.device, null);
     }
 
+    public void waitIdle() {
+        VK10.vkDeviceWaitIdle(this.device);
+    }
+
     public static final class Builder {
         public static LogicalDevice createLogicalDevice(PhysicalDevice physicalDevice, WindowSurface surface, GraphicsCardPreference preference, QueueManager queues) {
             try (MemoryStack stack = MemoryStack.stackPush()) {

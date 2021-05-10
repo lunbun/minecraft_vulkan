@@ -1,10 +1,12 @@
 package io.github.lunbun.pulsar;
 
+import io.github.lunbun.pulsar.component.drawing.*;
 import io.github.lunbun.pulsar.component.pipeline.GraphicsPipeline;
 import io.github.lunbun.pulsar.component.pipeline.RenderPass;
 import io.github.lunbun.pulsar.component.pipeline.Shader;
 import io.github.lunbun.pulsar.component.presentation.ImageViewsManager;
 import io.github.lunbun.pulsar.component.presentation.SwapChain;
+import io.github.lunbun.pulsar.component.presentation.SwapChainManager;
 import io.github.lunbun.pulsar.component.presentation.WindowSurface;
 import io.github.lunbun.pulsar.component.setup.Instance;
 import io.github.lunbun.pulsar.component.setup.LogicalDevice;
@@ -17,6 +19,7 @@ import io.github.lunbun.pulsar.component.setup.ValidationLayerUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /**
@@ -33,6 +36,7 @@ public final class PulsarApplication {
     private final QueueManager queues;
     private WindowSurface surface;
     private SwapChain swapChain;
+    private SwapChainManager swapChainManager;
     private final ImageViewsManager imageViews;
 
     private GraphicsCardPreference graphicsCardPreference;
@@ -41,12 +45,18 @@ public final class PulsarApplication {
     public RenderPass.Builder renderPasses;
     public GraphicsPipeline.Builder pipelines;
     public Shader.Builder shaders;
+    public Framebuffer.Builder framebuffers;
+    public CommandPool commandPool;
+    public CommandBatch.Builder commandBatches;
+    public BlockingTimer.Builder timings;
+    public FrameSynchronizer frameRenderer;
 
     public PulsarApplication(String name) {
         this.name = name;
 
         this.queues = new QueueManager();
         this.imageViews = new ImageViewsManager();
+        this.swapChainManager = new SwapChainManager();
     }
 
     public void requestGraphicsCard(GraphicsCardPreference preference) {
@@ -55,6 +65,10 @@ public final class PulsarApplication {
 
     public void setWindow(long window) {
         this.windowHandle = window;
+    }
+
+    public void framebufferResized() {
+        this.frameRenderer.framebufferResized = true;
     }
 
     public void initialize() {
@@ -95,22 +109,37 @@ public final class PulsarApplication {
         this.shaders = new Shader.Builder(this.logicalDevice);
         this.pipelines = new GraphicsPipeline.Builder(this.logicalDevice, this.shaders, this.swapChain);
         this.renderPasses = new RenderPass.Builder(this.logicalDevice, this.swapChain);
+        this.framebuffers = new Framebuffer.Builder(this.logicalDevice, this.swapChain, this.imageViews);
+        this.commandPool = new CommandPool(this.logicalDevice, this.swapChain, this.physicalDevice, this.surface, this.graphicsCardPreference);
+        this.commandBatches = new CommandBatch.Builder(this.swapChain);
+        this.timings = new BlockingTimer.Builder(this.logicalDevice);
+        this.frameRenderer = new FrameSynchronizer(this.logicalDevice, this.swapChain, this.swapChainManager, this.queues, this.timings);
+        this.frameRenderer.init();
         LOGGER.info("Setup pulsar-quasar interaction");
+
+        this.swapChainManager.assign(this.logicalDevice, this.swapChain, this.framebuffers, this.commandPool,
+                this.pipelines, this.renderPasses, this.imageViews, this.windowHandle);
+    }
+
+    public void endLoop() {
+        this.frameRenderer.endLoop();
+    }
+
+    public void addRecreateHandler(Consumer<Void> handler) {
+        this.swapChainManager.swapChainHandlers.add(handler);
     }
 
     public void exit() {
+        this.timings.destroy();
+        this.commandPool.destroy();
+        this.framebuffers.destroy();
         this.pipelines.destroy();
-
+        this.renderPasses.destroy();
         this.imageViews.destroy();
-
         this.swapChain.destroy();
-
         this.logicalDevice.destroy();
-
         ValidationLayerUtils.destroy(this.instance);
-
         this.surface.destroy();
-
         this.instance.destroy();
     }
 }

@@ -44,15 +44,15 @@ public final class GraphicsPipeline {
         }
 
         public void destroy() {
-            for (GraphicsPipeline pipeline : pipelinePool) {
-                this.destroyPipeline(pipeline);
+            for (int i = this.pipelinePool.size() - 1; i >= 0; --i) {
+                this.destroyPipeline(this.pipelinePool.get(i));
+                this.pipelinePool.remove(i);
             }
         }
 
         private void destroyPipeline(GraphicsPipeline pipeline) {
             VK10.vkDestroyPipeline(this.device.device, pipeline.pipeline, null);
             VK10.vkDestroyPipelineLayout(this.device.device, pipeline.pipelineLayout, null);
-            VK10.vkDestroyRenderPass(this.device.device, pipeline.renderPass.renderPass, null);
         }
 
         private void createVkPipeline(GraphicsPipeline pipeline, Shader shader, RenderPass renderPass) {

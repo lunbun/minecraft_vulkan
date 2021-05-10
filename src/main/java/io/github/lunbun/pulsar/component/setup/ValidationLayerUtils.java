@@ -70,10 +70,12 @@ public final class ValidationLayerUtils {
     public static int debugCallback(int messageSeverity, int messageType, long pCallbackData, long pUserData) {
         VkDebugUtilsMessengerCallbackDataEXT callbackData = VkDebugUtilsMessengerCallbackDataEXT.create(pCallbackData);
 
+        String msgType = Integer.toBinaryString(messageType);
+
         if (messageSeverity >= EXTDebugUtils.VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
-            LOGGER.error(callbackData.pMessageString());
+            LOGGER.error(msgType + " " + callbackData.pMessageString());
         } else if (messageSeverity >= EXTDebugUtils.VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-            LOGGER.warn(callbackData.pMessageString());
+            LOGGER.warn(msgType + " " + callbackData.pMessageString());
         }
 
         return VK10.VK_FALSE;

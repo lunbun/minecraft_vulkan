@@ -1,5 +1,6 @@
 package io.github.lunbun.pulsar.component.presentation;
 
+import io.github.lunbun.pulsar.component.drawing.Framebuffer;
 import io.github.lunbun.pulsar.component.setup.LogicalDevice;
 import io.github.lunbun.pulsar.component.setup.PhysicalDevice;
 import io.github.lunbun.pulsar.struct.setup.GraphicsCardPreference;
@@ -17,22 +18,101 @@ import java.nio.LongBuffer;
 import java.util.List;
 
 public final class SwapChain {
+    public final PhysicalDevice physicalDevice;
     public final LogicalDevice device;
-    public final List<Long> images;
-    public final int imageFormat;
-    public final VkExtent2D extent;
-    public final long swapChain;
+    public final WindowSurface surface;
+    public final long window;
+    public final GraphicsCardPreference preference;
 
-    protected SwapChain(LogicalDevice device, List<Long> images, int imageFormat, VkExtent2D extent, long swapChain) {
+    public List<Long> images;
+    public int imageFormat;
+    public VkExtent2D extent;
+    public long swapChain;
+
+    protected SwapChain(LogicalDevice device, PhysicalDevice physicalDevice, WindowSurface surface, long window, GraphicsCardPreference preference) {
         this.device = device;
-        this.images = images;
-        this.imageFormat = imageFormat;
-        this.extent = extent;
-        this.swapChain = swapChain;
+        this.physicalDevice = physicalDevice;
+        this.surface = surface;
+        this.window = window;
+        this.preference = preference;
+
+        this.images = null;
+        this.imageFormat = 0;
+        this.extent = null;
+        this.swapChain = 0;
     }
 
     public void destroy() {
         KHRSwapchain.vkDestroySwapchainKHR(this.device.device, this.swapChain, null);
+    }
+
+    public void create() {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            Support.SwapChainSupportDetails swapChainSupport = Support.querySwapChainSupport(this.physicalDevice.device,
+                    this.surface, stack);
+
+            VkSurfaceFormatKHR surfaceFormat = Builder.chooseSwapSurfaceFormat(swapChainSupport.formats);
+            int presentMode = Builder.chooseSwapPresentMode(swapChainSupport.presentModes);
+            VkExtent2D extent = Builder.chooseSwapExtent(swapChainSupport.capabilities, this.window);
+
+            IntBuffer pImageCount = stack.ints(swapChainSupport.capabilities.minImageCount() + 1);
+            if ((swapChainSupport.capabilities.maxImageCount() > 0) &&
+                    (pImageCount.get(0) > swapChainSupport.capabilities.maxImageCount())) {
+                pImageCount.put(0, swapChainSupport.capabilities.maxImageCount());
+            }
+
+            VkSwapchainCreateInfoKHR createInfo = VkSwapchainCreateInfoKHR.callocStack(stack);
+            createInfo.sType(KHRSwapchain.VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
+            createInfo.surface(this.surface.surface);
+
+            createInfo.minImageCount(pImageCount.get(0));
+            createInfo.imageFormat(surfaceFormat.format());
+            createInfo.imageColorSpace(surfaceFormat.colorSpace());
+            createInfo.imageExtent(extent);
+            createInfo.imageArrayLayers(1);
+            createInfo.imageUsage(VK10.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+
+            QueueFamilyIndices indices = DeviceUtils.findQueueFamilies(this.physicalDevice.device, this.surface.surface, preference);
+
+            if (!indices.getFamilyIndex(QueueFamily.GRAPHICS).equals(indices.getFamilyIndex(QueueFamily.PRESENT))) {
+                createInfo.imageSharingMode(VK10.VK_SHARING_MODE_CONCURRENT);
+                createInfo.pQueueFamilyIndices(stack.ints(indices.getFamilyIndex(QueueFamily.GRAPHICS), indices.getFamilyIndex(QueueFamily.PRESENT)));
+            } else {
+                createInfo.imageSharingMode(VK10.VK_SHARING_MODE_EXCLUSIVE);
+            }
+
+            createInfo.preTransform(swapChainSupport.capabilities.currentTransform());
+            createInfo.compositeAlpha(KHRSurface.VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR);
+            createInfo.presentMode(presentMode);
+            createInfo.clipped(true);
+
+            createInfo.oldSwapchain(VK10.VK_NULL_HANDLE);
+
+            LongBuffer pSwapChain = stack.longs(VK10.VK_NULL_HANDLE);
+
+            if (KHRSwapchain.vkCreateSwapchainKHR(this.device.device, createInfo, null, pSwapChain) != VK10.VK_SUCCESS) {
+                throw new RuntimeException("Failed to create swap chain!");
+            }
+
+            long swapChain = pSwapChain.get(0);
+
+            KHRSwapchain.vkGetSwapchainImagesKHR(this.device.device, swapChain, pImageCount, null);
+            LongBuffer pSwapChainImages = stack.mallocLong(pImageCount.get(0));
+            KHRSwapchain.vkGetSwapchainImagesKHR(this.device.device, swapChain, pImageCount, pSwapChainImages);
+
+            List<Long> images = new LongArrayList(pImageCount.get(0));
+            for (int i = 0; i < pSwapChainImages.capacity(); ++i) {
+                images.add(pSwapChainImages.get(i));
+            }
+
+            int imageFormat = surfaceFormat.format();
+            VkExtent2D extentCopy = VkExtent2D.create().set(extent);
+
+            this.images = images;
+            this.imageFormat = imageFormat;
+            this.extent = extentCopy;
+            this.swapChain = swapChain;
+        }
     }
 
     public static final class Builder {
@@ -76,68 +156,9 @@ public final class SwapChain {
         }
 
         public static SwapChain createSwapChain(PhysicalDevice physicalDevice, LogicalDevice device, WindowSurface surface, long window, GraphicsCardPreference preference) {
-            try (MemoryStack stack = MemoryStack.stackPush()) {
-                Support.SwapChainSupportDetails swapChainSupport = Support.querySwapChainSupport(physicalDevice.device, surface, stack);
-
-                VkSurfaceFormatKHR surfaceFormat = chooseSwapSurfaceFormat(swapChainSupport.formats);
-                int presentMode = chooseSwapPresentMode(swapChainSupport.presentModes);
-                VkExtent2D extent = chooseSwapExtent(swapChainSupport.capabilities, window);
-
-                IntBuffer pImageCount = stack.ints(swapChainSupport.capabilities.minImageCount() + 1);
-                if ((swapChainSupport.capabilities.maxImageCount() > 0) &&
-                        (pImageCount.get(0) > swapChainSupport.capabilities.maxImageCount())) {
-                    pImageCount.put(0, swapChainSupport.capabilities.maxImageCount());
-                }
-
-                VkSwapchainCreateInfoKHR createInfo = VkSwapchainCreateInfoKHR.callocStack(stack);
-                createInfo.sType(KHRSwapchain.VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR);
-                createInfo.surface(surface.surface);
-
-                createInfo.minImageCount(pImageCount.get(0));
-                createInfo.imageFormat(surfaceFormat.format());
-                createInfo.imageColorSpace(surfaceFormat.colorSpace());
-                createInfo.imageExtent(extent);
-                createInfo.imageArrayLayers(1);
-                createInfo.imageUsage(VK10.VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-
-                QueueFamilyIndices indices = DeviceUtils.findQueueFamilies(physicalDevice.device, surface.surface, preference);
-
-                if (!indices.getFamilyIndex(QueueFamily.GRAPHICS).equals(indices.getFamilyIndex(QueueFamily.PRESENT))) {
-                    createInfo.imageSharingMode(VK10.VK_SHARING_MODE_CONCURRENT);
-                    createInfo.pQueueFamilyIndices(stack.ints(indices.getFamilyIndex(QueueFamily.GRAPHICS), indices.getFamilyIndex(QueueFamily.PRESENT)));
-                } else {
-                    createInfo.imageSharingMode(VK10.VK_SHARING_MODE_EXCLUSIVE);
-                }
-
-                createInfo.preTransform(swapChainSupport.capabilities.currentTransform());
-                createInfo.compositeAlpha(KHRSurface.VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR);
-                createInfo.presentMode(presentMode);
-                createInfo.clipped(true);
-
-                createInfo.oldSwapchain(VK10.VK_NULL_HANDLE);
-
-                LongBuffer pSwapChain = stack.longs(VK10.VK_NULL_HANDLE);
-
-                if (KHRSwapchain.vkCreateSwapchainKHR(device.device, createInfo, null, pSwapChain) != VK10.VK_SUCCESS) {
-                    throw new RuntimeException("Failed to create swap chain!");
-                }
-
-                long swapChain = pSwapChain.get(0);
-
-                KHRSwapchain.vkGetSwapchainImagesKHR(device.device, swapChain, pImageCount, null);
-                LongBuffer pSwapChainImages = stack.mallocLong(pImageCount.get(0));
-                KHRSwapchain.vkGetSwapchainImagesKHR(device.device, swapChain, pImageCount, pSwapChainImages);
-
-                List<Long> images = new LongArrayList(pImageCount.get(0));
-                for (int i = 0; i < pSwapChainImages.capacity(); ++i) {
-                    images.add(pSwapChainImages.get(i));
-                }
-
-                int imageFormat = surfaceFormat.format();
-                VkExtent2D extentCopy = VkExtent2D.create().set(extent);
-
-                return new SwapChain(device, images, imageFormat, extentCopy, swapChain);
-            }
+            SwapChain swapChain = new SwapChain(device, physicalDevice, surface, window, preference);
+            swapChain.create();
+            return swapChain;
         }
     }
 

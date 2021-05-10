@@ -1,0 +1,77 @@
+package io.github.lunbun.pulsar.component.drawing;
+
+import io.github.lunbun.pulsar.component.pipeline.GraphicsPipeline;
+import io.github.lunbun.pulsar.component.pipeline.RenderPass;
+import org.lwjgl.vulkan.*;
+
+public final class CommandBuffer {
+    public final VkCommandBuffer buffer;
+
+    private boolean isRecording = false;
+    private boolean inRenderPass = false;
+
+    protected CommandBuffer(VkCommandBuffer buffer) {
+        this.buffer = buffer;
+    }
+
+    private void assertRecording() {
+        if (!this.isRecording) {
+            throw new RuntimeException("Not recording command buffer!");
+        }
+    }
+
+    private void assertRenderPass() {
+        this.assertRecording();
+
+        if (!this.inRenderPass) {
+            throw new RuntimeException("Not in render pass!");
+        }
+    }
+
+    public void startRecording(CommandBatch batch) {
+        if (VK10.vkBeginCommandBuffer(this.buffer, batch.beginInfo) != VK10.VK_SUCCESS) {
+            throw new RuntimeException("Failed to begin recording command buffer!");
+        }
+        this.isRecording = true;
+    }
+
+    public void startRenderPass(RenderPass renderPass, Framebuffer framebuffer, CommandBatch batch) {
+        this.assertRecording();
+
+        batch.renderPassInfo.renderPass(renderPass.renderPass);
+
+        VkClearValue.Buffer clearValues = VkClearValue.callocStack(1, batch.stack);
+        clearValues.color().float32(batch.stack.floats(0, 0, 0, 1));
+        batch.renderPassInfo.pClearValues(clearValues);
+
+        batch.renderPassInfo.framebuffer(framebuffer.framebuffer);
+
+        VK10.vkCmdBeginRenderPass(this.buffer, batch.renderPassInfo, VK10.VK_SUBPASS_CONTENTS_INLINE);
+
+        this.inRenderPass = true;
+    }
+
+    public void bindPipeline(GraphicsPipeline graphicsPipeline) {
+        this.assertRenderPass();
+        VK10.vkCmdBindPipeline(this.buffer, VK10.VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline.pipeline);
+    }
+
+    public void draw(int count, int instanceCount, int first, int firstInstance) {
+        this.assertRenderPass();
+        VK10.vkCmdDraw(this.buffer, count, instanceCount, first, firstInstance);
+    }
+
+    public void endRenderPass() {
+        this.assertRenderPass();
+        VK10.vkCmdEndRenderPass(this.buffer);
+        this.inRenderPass = false;
+    }
+
+    public void endRecording() {
+        this.assertRecording();
+        if (VK10.vkEndCommandBuffer(this.buffer) != VK10.VK_SUCCESS) {
+            throw new RuntimeException("Failed to record command buffer!");
+        }
+        this.isRecording = false;
+    }
+}

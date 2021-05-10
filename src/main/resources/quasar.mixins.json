@@ -4,8 +4,9 @@
   "package": "io.github.lunbun.quasar.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
-    "glfw.MixinWindow",
     "gl.MixinWindow",
+    "glfw.MixinWindow",
+    "vulkan.MixinMinecraftClient",
     "vulkan.MixinRenderSystem",
     "vulkan.MixinWindow"
   ],

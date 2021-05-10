@@ -49,8 +49,9 @@ public final class ImageViewsManager {
     }
 
     public void destroy() {
-        for (Long imageView : this.imageViews) {
-            VK10.vkDestroyImageView(this.device.device, imageView, null);
+        for (int i = this.imageViews.size() - 1; i >= 0; --i) {
+            VK10.vkDestroyImageView(this.device.device, this.imageViews.get(i), null);
+            this.imageViews.remove(i);
         }
     }
 }
