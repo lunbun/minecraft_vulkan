@@ -7,6 +7,8 @@ import io.github.lunbun.pulsar.component.drawing.Framebuffer;
 import io.github.lunbun.pulsar.component.pipeline.GraphicsPipeline;
 import io.github.lunbun.pulsar.component.pipeline.RenderPass;
 import io.github.lunbun.pulsar.component.pipeline.Shader;
+import io.github.lunbun.pulsar.component.vertex.Vertex;
+import io.github.lunbun.pulsar.component.vertex.VertexBuffer;
 import io.github.lunbun.pulsar.struct.setup.DeviceExtension;
 import io.github.lunbun.pulsar.struct.setup.DeviceType;
 import io.github.lunbun.pulsar.struct.setup.GraphicsCardPreference;
@@ -14,12 +16,16 @@ import io.github.lunbun.pulsar.struct.setup.QueueFamily;
 import io.github.lunbun.quasar.client.engine.framework.glfw.GLFWWindow;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.joml.Vector2f;
+import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 
 public class QuasarRenderer {
     private static final Logger LOGGER = LogManager.getLogger("Quasar");
     private static final PulsarApplication pulsar = new PulsarApplication("Minecraft");
     private static long window;
+    private static Vertex.Builder vertexBuilder;
+    private static VertexBuffer vbo;
 
     public static void initWindow() {
         GLFWWindow.disableClientAPI();
@@ -35,10 +41,25 @@ public class QuasarRenderer {
         pulsar.framebufferResized();
     }
 
+    private static void createBuffer() {
+        vertexBuilder = new Vertex.Builder();
+        vertexBuilder.attribute(Vertex.Type.VEC2, 0);
+        vertexBuilder.attribute(Vertex.Type.VEC3, 1);
+
+        Vertex[] vertices = new Vertex[] {
+                vertexBuilder.createVertex(new Vector2f(0f, -0.5f), new Vector3f(1, 0, 0)),
+                vertexBuilder.createVertex(new Vector2f(0.5f, 0.5f), new Vector3f(0, 1, 0)),
+                vertexBuilder.createVertex(new Vector2f(-0.5f, 0.5f), new Vector3f(0, 0, 1))
+        };
+
+        vbo = pulsar.vertexBuffers.createVertexBuffer(3, 3L * vertexBuilder.sizeof());
+        pulsar.vertexBuffers.uploadData(vbo, vertices);
+    }
+
     private static void createRenderer() {
         Shader shader = new Shader("shader/shader.vert", "shader/shader.frag");
         RenderPass renderPass = pulsar.renderPasses.createRenderPass();
-        GraphicsPipeline pipeline = pulsar.pipelines.createPipeline(shader, renderPass);
+        GraphicsPipeline pipeline = pulsar.pipelines.createPipeline(shader, renderPass, vertexBuilder);
         pulsar.framebuffers.createFramebuffers(renderPass);
 
         pulsar.commandPool.allocateBuffers(pulsar.framebuffers.framebuffers.size());
@@ -50,7 +71,8 @@ public class QuasarRenderer {
                 buffer.startRecording(batch);
                 buffer.startRenderPass(renderPass, framebuffer, batch);
                 buffer.bindPipeline(pipeline);
-                buffer.draw(3, 1, 0, 0);
+                buffer.bindVertexBuffer(vbo, batch);
+                buffer.draw(vbo.count, 1, 0, 0);
                 buffer.endRenderPass();
                 buffer.endRecording();
             }
@@ -72,12 +94,29 @@ public class QuasarRenderer {
 
         pulsar.initialize();
 
+        createBuffer();
         createRenderer();
+
+        System.out.print("0 fps");
+        int fps = 0;
+        long ms = 0;
+        long start = System.currentTimeMillis();
 
         while (!GLFW.glfwWindowShouldClose(window)) {
             GLFW.glfwPollEvents();
             pulsar.frameRenderer.drawFrame(pulsar.commandPool.buffers);
+
+            ++fps;
+            long time = System.currentTimeMillis();
+            ms += time - start;
+            if (ms >= 1000) {
+                ms %= 1000;
+                System.out.print("\r" + fps + " fps                        ");
+                fps = 0;
+            }
+            start = time;
         }
+        System.out.println("\rcomplete                        ");
         pulsar.endLoop();
     }
 

@@ -45,6 +45,7 @@ dependencies {
     // used only for testing
     lwjglLibrary "opengl"
 
+    extraLibs "org.joml:joml:${joml_version}"
     extraLibs "org.apache.commons:commons-math3:${commons_math_version}"
 
     configurations.compile.extendsFrom(configurations.extraLibs)

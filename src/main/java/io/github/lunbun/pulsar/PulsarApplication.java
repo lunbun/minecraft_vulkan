@@ -12,6 +12,7 @@ import io.github.lunbun.pulsar.component.setup.Instance;
 import io.github.lunbun.pulsar.component.setup.LogicalDevice;
 import io.github.lunbun.pulsar.component.setup.PhysicalDevice;
 import io.github.lunbun.pulsar.component.setup.QueueManager;
+import io.github.lunbun.pulsar.component.vertex.VertexBuffer;
 import io.github.lunbun.pulsar.struct.setup.DeviceExtension;
 import io.github.lunbun.pulsar.struct.setup.GraphicsCardPreference;
 import io.github.lunbun.pulsar.struct.setup.QueueFamily;
@@ -50,6 +51,7 @@ public final class PulsarApplication {
     public CommandBatch.Builder commandBatches;
     public BlockingTimer.Builder timings;
     public FrameSynchronizer frameRenderer;
+    public VertexBuffer.Builder vertexBuffers;
 
     public PulsarApplication(String name) {
         this.name = name;
@@ -115,6 +117,7 @@ public final class PulsarApplication {
         this.timings = new BlockingTimer.Builder(this.logicalDevice);
         this.frameRenderer = new FrameSynchronizer(this.logicalDevice, this.swapChain, this.swapChainManager, this.queues, this.timings);
         this.frameRenderer.init();
+        this.vertexBuffers = new VertexBuffer.Builder(this.logicalDevice, this.physicalDevice);
         LOGGER.info("Setup pulsar-quasar interaction");
 
         this.swapChainManager.assign(this.logicalDevice, this.swapChain, this.framebuffers, this.commandPool,
@@ -130,13 +133,10 @@ public final class PulsarApplication {
     }
 
     public void exit() {
+        this.swapChainManager.cleanup();
+        this.vertexBuffers.destroy();
         this.timings.destroy();
         this.commandPool.destroy();
-        this.framebuffers.destroy();
-        this.pipelines.destroy();
-        this.renderPasses.destroy();
-        this.imageViews.destroy();
-        this.swapChain.destroy();
         this.logicalDevice.destroy();
         ValidationLayerUtils.destroy(this.instance);
         this.surface.destroy();

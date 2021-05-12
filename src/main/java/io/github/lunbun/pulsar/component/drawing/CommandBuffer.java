@@ -2,7 +2,10 @@ package io.github.lunbun.pulsar.component.drawing;
 
 import io.github.lunbun.pulsar.component.pipeline.GraphicsPipeline;
 import io.github.lunbun.pulsar.component.pipeline.RenderPass;
+import io.github.lunbun.pulsar.component.vertex.VertexBuffer;
 import org.lwjgl.vulkan.*;
+
+import java.nio.LongBuffer;
 
 public final class CommandBuffer {
     public final VkCommandBuffer buffer;
@@ -49,6 +52,12 @@ public final class CommandBuffer {
         VK10.vkCmdBeginRenderPass(this.buffer, batch.renderPassInfo, VK10.VK_SUBPASS_CONTENTS_INLINE);
 
         this.inRenderPass = true;
+    }
+
+    public void bindVertexBuffer(VertexBuffer vertexBuffer, CommandBatch batch) {
+        LongBuffer pBuffers = batch.stack.longs(vertexBuffer.buffer);
+        LongBuffer pOffsets = batch.stack.longs(0);
+        VK10.vkCmdBindVertexBuffers(this.buffer, 0, pBuffers, pOffsets);
     }
 
     public void bindPipeline(GraphicsPipeline graphicsPipeline) {

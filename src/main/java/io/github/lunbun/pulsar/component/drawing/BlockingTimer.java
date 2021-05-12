@@ -50,7 +50,7 @@ public final class BlockingTimer {
                     VkSemaphoreCreateInfo semaphoreInfo = VkSemaphoreCreateInfo.callocStack(stack);
                     semaphoreInfo.sType(VK10.VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO);
 
-                    LongBuffer pSemaphore = stack.longs(VK10.VK_NULL_HANDLE);
+                    LongBuffer pSemaphore = stack.mallocLong(1);
                     if (VK10.vkCreateSemaphore(this.device.device, semaphoreInfo, null, pSemaphore) != VK10.VK_SUCCESS) {
                         throw new RuntimeException("Failed to create semaphores!");
                     }
@@ -65,7 +65,7 @@ public final class BlockingTimer {
                     fenceInfo.sType(VK10.VK_STRUCTURE_TYPE_FENCE_CREATE_INFO);
                     fenceInfo.flags(VK10.VK_FENCE_CREATE_SIGNALED_BIT);
 
-                    LongBuffer pFence = stack.longs(VK10.VK_NULL_HANDLE);
+                    LongBuffer pFence = stack.mallocLong(1);
                     if (VK10.vkCreateFence(this.device.device, fenceInfo, null, pFence) != VK10.VK_SUCCESS) {
                         throw new RuntimeException("Failed to create fence!");
                     }

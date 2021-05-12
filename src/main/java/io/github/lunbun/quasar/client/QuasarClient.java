@@ -4,6 +4,9 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 
+/**
+ * Check todo-lists
+ */
 @Environment(EnvType.CLIENT)
 public class QuasarClient implements ClientModInitializer {
     @Override

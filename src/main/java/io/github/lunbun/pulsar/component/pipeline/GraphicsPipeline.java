@@ -2,6 +2,7 @@ package io.github.lunbun.pulsar.component.pipeline;
 
 import io.github.lunbun.pulsar.component.presentation.SwapChain;
 import io.github.lunbun.pulsar.component.setup.LogicalDevice;
+import io.github.lunbun.pulsar.component.vertex.Vertex;
 import io.github.lunbun.pulsar.struct.pipeline.ShaderModule;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.lwjgl.system.MemoryStack;
@@ -36,8 +37,12 @@ public final class GraphicsPipeline {
         }
 
         public GraphicsPipeline createPipeline(Shader shader, RenderPass renderPass) {
+            return this.createPipeline(shader, renderPass, null);
+        }
+
+        public GraphicsPipeline createPipeline(Shader shader, RenderPass renderPass, Vertex.Builder vertexBuilder) {
             GraphicsPipeline pipeline = new GraphicsPipeline(renderPass);
-            this.createVkPipeline(pipeline, shader, renderPass);
+            this.createVkPipeline(pipeline, shader, renderPass, vertexBuilder);
 
             this.pipelinePool.add(pipeline);
             return pipeline;
@@ -55,7 +60,7 @@ public final class GraphicsPipeline {
             VK10.vkDestroyPipelineLayout(this.device.device, pipeline.pipelineLayout, null);
         }
 
-        private void createVkPipeline(GraphicsPipeline pipeline, Shader shader, RenderPass renderPass) {
+        private void createVkPipeline(GraphicsPipeline pipeline, Shader shader, RenderPass renderPass, Vertex.Builder vertexBuilder) {
             try (MemoryStack stack = MemoryStack.stackPush()) {
                 VkPipelineShaderStageCreateInfo.Buffer shaderStageInfos = VkPipelineShaderStageCreateInfo.callocStack(2, stack);
 
@@ -67,6 +72,10 @@ public final class GraphicsPipeline {
 
                 VkPipelineVertexInputStateCreateInfo vertexInputInfo = VkPipelineVertexInputStateCreateInfo.callocStack(stack);
                 vertexInputInfo.sType(VK10.VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO);
+                if (vertexBuilder != null) {
+                    vertexInputInfo.pVertexBindingDescriptions(vertexBuilder.getBindingDescription(stack));
+                    vertexInputInfo.pVertexAttributeDescriptions(vertexBuilder.getAttributeDescriptions(stack));
+                }
 
                 VkPipelineInputAssemblyStateCreateInfo inputAssembly = VkPipelineInputAssemblyStateCreateInfo.callocStack(stack);
                 inputAssembly.sType(VK10.VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO);
