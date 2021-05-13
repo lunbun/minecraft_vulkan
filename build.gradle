@@ -10,6 +10,13 @@ archivesBaseName = project.archives_base_name
 version = project.mod_version
 group = project.maven_group
 
+repositories {
+    maven {
+        name "JitPack"
+        url "https://jitpack.io"
+    }
+}
+
 configurations {
     extraLibs
 }
@@ -33,6 +40,10 @@ dependencies {
 
     // PSA: Some older mods, compiled on Loom 0.2.1, might have outdated Maven POMs.
     // You may need to force-disable transitiveness on them.
+
+    modRuntime ("com.github.SuperCoder7979:databreaker:${databreaker_version}") {
+        exclude module: "fabric-loader"
+    }
 
     // we have to use 3.2.3 instead of minecraft's 3.2.2 for shaderc support, so we need to override all lwjgl libraries
     extraLibs "org.lwjgl:lwjgl:${lwjgl_version}"
