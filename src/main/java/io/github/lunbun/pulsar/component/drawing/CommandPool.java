@@ -1,6 +1,5 @@
 package io.github.lunbun.pulsar.component.drawing;
 
-import io.github.lunbun.pulsar.component.pipeline.RenderPass;
 import io.github.lunbun.pulsar.component.presentation.SwapChain;
 import io.github.lunbun.pulsar.component.presentation.WindowSurface;
 import io.github.lunbun.pulsar.component.setup.LogicalDevice;
@@ -22,10 +21,8 @@ public final class CommandPool {
     private final SwapChain swapChain;
 
     private final long commandPool;
-    public final List<CommandBuffer> buffers;
 
     public CommandPool(LogicalDevice device, SwapChain swapChain, PhysicalDevice physicalDevice, WindowSurface surface, GraphicsCardPreference preference) {
-        this.buffers = new ObjectArrayList<>();
         this.swapChain = swapChain;
         this.device = device;
 
@@ -46,7 +43,25 @@ public final class CommandPool {
         }
     }
 
-    public void allocateBuffers(int count) {
+    public CommandBuffer allocateBuffer() {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            VkCommandBufferAllocateInfo allocInfo = VkCommandBufferAllocateInfo.callocStack(stack);
+            allocInfo.sType(VK10.VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
+            allocInfo.commandPool(this.commandPool);
+            allocInfo.level(VK10.VK_COMMAND_BUFFER_LEVEL_PRIMARY);
+            allocInfo.commandBufferCount(1);
+
+            PointerBuffer pCommandBuffers = stack.mallocPointer(1);
+
+            if (VK10.vkAllocateCommandBuffers(this.device.device, allocInfo, pCommandBuffers) != VK10.VK_SUCCESS) {
+                throw new RuntimeException("Failed to allocate command buffers!");
+            }
+
+            return new CommandBuffer(new VkCommandBuffer(pCommandBuffers.get(0), this.device.device));
+        }
+    }
+
+    public void allocateBuffers(int count, List<CommandBuffer> buffers) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
             VkCommandBufferAllocateInfo allocInfo = VkCommandBufferAllocateInfo.callocStack(stack);
             allocInfo.sType(VK10.VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO);
@@ -61,7 +76,7 @@ public final class CommandPool {
             }
 
             for (int i = 0; i < count; ++i) {
-                this.buffers.add(new CommandBuffer(new VkCommandBuffer(pCommandBuffers.get(i), this.device.device)));
+                buffers.add(new CommandBuffer(new VkCommandBuffer(pCommandBuffers.get(i), this.device.device)));
             }
         }
     }
@@ -70,13 +85,21 @@ public final class CommandPool {
         VK10.vkDestroyCommandPool(this.device.device, this.commandPool, null);
     }
 
-    public void freeBuffers() {
+    public void freeBuffers(List<CommandBuffer> buffers) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
-            PointerBuffer pBuffers = stack.mallocPointer(this.buffers.size());
-            for (int i = this.buffers.size() - 1; i >= 0; --i) {
-                pBuffers.put(i, this.buffers.get(i).buffer);
-                this.buffers.remove(i);
+            PointerBuffer pBuffers = stack.mallocPointer(buffers.size());
+            for (int i = buffers.size() - 1; i >= 0; --i) {
+                pBuffers.put(i, buffers.get(i).buffer);
+                buffers.remove(i);
             }
+            VK10.vkFreeCommandBuffers(this.device.device, this.commandPool, pBuffers);
+        }
+    }
+
+    public void freeBuffer(CommandBuffer buffer) {
+        try (MemoryStack stack = MemoryStack.stackPush()) {
+            PointerBuffer pBuffers = stack.mallocPointer(1);
+            pBuffers.put(0, buffer.buffer);
             VK10.vkFreeCommandBuffers(this.device.device, this.commandPool, pBuffers);
         }
     }

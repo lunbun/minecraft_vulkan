@@ -17,6 +17,7 @@ public final class SwapChainManager {
     public SwapChain swapChain;
     public LogicalDevice device;
     public final List<Consumer<Void>> swapChainHandlers;
+    public final List<Consumer<Void>> commandBufferDestructors;
 
     private long window;
     private Framebuffer.Builder framebuffers;
@@ -27,6 +28,7 @@ public final class SwapChainManager {
 
     public SwapChainManager() {
         this.swapChainHandlers = new ObjectArrayList<>();
+        this.commandBufferDestructors = new ObjectArrayList<>();
     }
 
     public void assign(LogicalDevice device, SwapChain swapChain, Framebuffer.Builder framebuffers,
@@ -44,7 +46,7 @@ public final class SwapChainManager {
 
     public void cleanup() {
         this.framebuffers.destroy();
-        this.commandPool.freeBuffers();
+        this.executeCommandBufferDestructors();
         this.pipelines.destroy();
         this.renderPasses.destroy();
         this.imageViews.destroy();
@@ -72,6 +74,12 @@ public final class SwapChainManager {
     public void executeHandlers() {
         for (Consumer<Void> handlers : this.swapChainHandlers) {
             handlers.accept(null);
+        }
+    }
+
+    public void executeCommandBufferDestructors() {
+        for (Consumer<Void> destructor : this.commandBufferDestructors) {
+            destructor.accept(null);
         }
     }
 }

@@ -31,25 +31,31 @@ public final class CommandBuffer {
         }
     }
 
-    public void startRecording(CommandBatch batch) {
-        if (VK10.vkBeginCommandBuffer(this.buffer, batch.beginInfo) != VK10.VK_SUCCESS) {
+    public void startRecording(CommandBatch batch, int flags) {
+        batch.getBeginInfo().flags(flags);
+        if (VK10.vkBeginCommandBuffer(this.buffer, batch.getBeginInfo()) != VK10.VK_SUCCESS) {
             throw new RuntimeException("Failed to begin recording command buffer!");
         }
         this.isRecording = true;
     }
 
+    public void startRecording(CommandBatch batch) {
+        this.startRecording(batch, 0);
+    }
+
     public void startRenderPass(RenderPass renderPass, Framebuffer framebuffer, CommandBatch batch) {
         this.assertRecording();
+        VkRenderPassBeginInfo renderPassInfo = batch.getRenderPassInfo();
 
-        batch.renderPassInfo.renderPass(renderPass.renderPass);
+        renderPassInfo.renderPass(renderPass.renderPass);
 
         VkClearValue.Buffer clearValues = VkClearValue.callocStack(1, batch.stack);
         clearValues.color().float32(batch.stack.floats(0, 0, 0, 1));
-        batch.renderPassInfo.pClearValues(clearValues);
+        renderPassInfo.pClearValues(clearValues);
 
-        batch.renderPassInfo.framebuffer(framebuffer.framebuffer);
+        renderPassInfo.framebuffer(framebuffer.framebuffer);
 
-        VK10.vkCmdBeginRenderPass(this.buffer, batch.renderPassInfo, VK10.VK_SUBPASS_CONTENTS_INLINE);
+        VK10.vkCmdBeginRenderPass(this.buffer, renderPassInfo, VK10.VK_SUBPASS_CONTENTS_INLINE);
 
         this.inRenderPass = true;
     }
@@ -57,9 +63,17 @@ public final class CommandBuffer {
     public void bindVertexBuffer(VertexBuffer vertexBuffer, CommandBatch batch) {
         this.assertRenderPass();
         // TODO: bind multiple buffers
-        LongBuffer pBuffers = batch.stack.longs(vertexBuffer.buffer);
+        LongBuffer pBuffers = batch.stack.longs(vertexBuffer.vertex.buffer);
         LongBuffer pOffsets = batch.stack.longs(0);
         VK10.vkCmdBindVertexBuffers(this.buffer, 0, pBuffers, pOffsets);
+    }
+
+    public void copyBuffer(long src, long dst, int size, CommandBatch batch) {
+        this.assertRecording();
+        // TODO: batch copy buffers
+        VkBufferCopy.Buffer copyRegion = VkBufferCopy.callocStack(1, batch.stack);
+        copyRegion.size(size);
+        VK10.vkCmdCopyBuffer(this.buffer, src, dst, copyRegion);
     }
 
     public void bindPipeline(GraphicsPipeline graphicsPipeline) {

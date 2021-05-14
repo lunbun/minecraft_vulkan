@@ -120,7 +120,7 @@ public final class PulsarApplication {
         this.timings = new BlockingTimer.Builder(this.logicalDevice);
         this.frameRenderer = new FrameSynchronizer(this.logicalDevice, this.swapChain, this.swapChainManager, this.queues, this.timings);
         this.frameRenderer.init();
-        this.vertexBuffers = new VertexBuffer.Builder(this.logicalDevice, this.physicalDevice, this.memoryAllocator);
+        this.vertexBuffers = new VertexBuffer.Builder(this.logicalDevice, this.physicalDevice, this.commandPool, this.commandBatches, this.queues, this.memoryAllocator);
         LOGGER.info("Setup pulsar-quasar interaction");
 
         this.swapChainManager.assign(this.logicalDevice, this.swapChain, this.framebuffers, this.commandPool,
@@ -135,9 +135,12 @@ public final class PulsarApplication {
         this.swapChainManager.swapChainHandlers.add(handler);
     }
 
+    public void addCommandBufferDestructor(Consumer<Void> handler) {
+        this.swapChainManager.commandBufferDestructors.add(handler);
+    }
+
     public void exit() {
         this.swapChainManager.cleanup();
-        this.vertexBuffers.destroy();
         this.memoryAllocator.destroy();
         this.timings.destroy();
         this.commandPool.destroy();

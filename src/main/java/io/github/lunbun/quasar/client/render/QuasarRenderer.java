@@ -19,12 +19,16 @@ import org.apache.logging.log4j.Logger;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class QuasarRenderer {
     private static final Logger LOGGER = LogManager.getLogger("Quasar");
     private static final PulsarApplication pulsar = new PulsarApplication("Minecraft");
     private static long window;
     private static Vertex.Builder vertexBuilder;
     private static VertexBuffer vbo;
+    private static List<CommandBuffer> commandBuffers;
 
     public static void initWindow() {
         GLFWWindow.disableClientAPI();
@@ -61,10 +65,10 @@ public class QuasarRenderer {
         GraphicsPipeline pipeline = pulsar.pipelines.createPipeline(shader, renderPass, vertexBuilder);
         pulsar.framebuffers.createFramebuffers(renderPass);
 
-        pulsar.commandPool.allocateBuffers(pulsar.framebuffers.framebuffers.size());
+        pulsar.commandPool.allocateBuffers(pulsar.framebuffers.framebuffers.size(), commandBuffers);
         try (CommandBatch batch = pulsar.commandBatches.createBatch()) {
-            for (int i = 0; i < pulsar.commandPool.buffers.size(); ++i) {
-                CommandBuffer buffer = pulsar.commandPool.buffers.get(i);
+            for (int i = 0; i < commandBuffers.size(); ++i) {
+                CommandBuffer buffer = commandBuffers.get(i);
                 Framebuffer framebuffer = pulsar.framebuffers.framebuffers.get(i);
 
                 buffer.startRecording(batch);
@@ -91,7 +95,13 @@ public class QuasarRenderer {
             createRenderer();
         });
 
+        pulsar.addCommandBufferDestructor(ignored -> {
+            pulsar.commandPool.freeBuffers(commandBuffers);
+            commandBuffers.clear();
+        });
+
         pulsar.initialize();
+        commandBuffers = new ArrayList<>();
 
         createBuffer();
         createRenderer();
@@ -103,7 +113,7 @@ public class QuasarRenderer {
 
         while (!GLFWWindow.windowShouldClose(window)) {
             GLFWWindow.pollEvents();
-            pulsar.frameRenderer.drawFrame(pulsar.commandPool.buffers);
+            pulsar.frameRenderer.drawFrame(commandBuffers);
 
             ++fps;
             long time = System.currentTimeMillis();
@@ -120,6 +130,7 @@ public class QuasarRenderer {
     }
 
     public static void cleanup() {
+        vbo.destroy();
         pulsar.exit();
     }
 }
