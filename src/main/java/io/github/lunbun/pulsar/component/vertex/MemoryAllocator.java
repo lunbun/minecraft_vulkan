@@ -140,7 +140,6 @@ public final class MemoryAllocator {
             slot.headers[index >> 3] &= ~(1 << (index & 7));
         }
 
-        // TODO: batch claim/free
         private void claim(MemorySlot slot, int index, int size) {
             for (int i = 0; i < size;) {
                 int pointer = i + index;
