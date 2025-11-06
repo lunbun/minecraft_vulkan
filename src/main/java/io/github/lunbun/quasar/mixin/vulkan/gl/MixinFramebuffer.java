@@ -1,4 +1,4 @@
-package io.github.lunbun.quasar.mixin.gl;
+package io.github.lunbun.quasar.mixin.vulkan.gl;
 
 import net.minecraft.client.gl.Framebuffer;
 import org.spongepowered.asm.mixin.Mixin;

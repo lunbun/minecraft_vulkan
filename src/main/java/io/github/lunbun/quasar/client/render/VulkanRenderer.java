@@ -9,9 +9,8 @@ import io.github.lunbun.pulsar.component.drawing.CommandBuffer;
 public interface VulkanRenderer {
     /**
      * Initialize all Pulsar elements the renderer will use.
-     * @param pulsar the Pulsar application
      */
-    void init(PulsarApplication pulsar);
+    void init();
 
     /**
      * Destroy all Pulsar elements that have been created.

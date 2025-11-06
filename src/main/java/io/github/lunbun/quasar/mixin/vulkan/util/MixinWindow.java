@@ -1,4 +1,4 @@
-package io.github.lunbun.quasar.mixin.vulkan;
+package io.github.lunbun.quasar.mixin.vulkan.util;
 
 import io.github.lunbun.quasar.client.render.QuasarRenderer;
 import net.minecraft.client.WindowEventHandler;
@@ -6,6 +6,7 @@ import net.minecraft.client.WindowSettings;
 import net.minecraft.client.util.MonitorTracker;
 import net.minecraft.client.util.Window;
 import org.lwjgl.glfw.GLFW;
+import org.lwjgl.opengl.GLCapabilities;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 import org.spongepowered.asm.mixin.Shadow;
@@ -16,7 +17,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(Window.class)
 public abstract class MixinWindow {
-    @Shadow public abstract int getFramebufferWidth();
+    @Redirect(at = @At(value = "INVOKE", target = "Lorg/lwjgl/glfw/GLFW;glfwMakeContextCurrent(J)V"), method = "<init>")
+    private void removeMakeContextCurrent(long window) { }
+
+    @Redirect(at = @At(value = "INVOKE", target = "Lorg/lwjgl/opengl/GL;createCapabilities()Lorg/lwjgl/opengl/GLCapabilities;"), method = "<init>")
+    private GLCapabilities removeGlCreateCapabilities() {
+        return null;
+    }
 
     @Inject(at = @At(value = "INVOKE", target =
             "Lcom/mojang/blaze3d/systems/RenderSystem;assertThread(Ljava/util/function/Supplier;)V",

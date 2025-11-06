@@ -1,4 +1,4 @@
-package io.github.lunbun.quasar.mixin.vulkan;
+package io.github.lunbun.quasar.mixin.vulkan.render;
 
 import com.mojang.blaze3d.platform.GlStateManager;
 import io.github.lunbun.quasar.client.render.immediate.Immediate;

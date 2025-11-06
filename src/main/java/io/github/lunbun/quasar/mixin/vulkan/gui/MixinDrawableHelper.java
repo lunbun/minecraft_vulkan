@@ -1,4 +1,4 @@
-package io.github.lunbun.quasar.mixin.vulkan;
+package io.github.lunbun.quasar.mixin.vulkan.gui;
 
 import io.github.lunbun.quasar.client.util.ExtendedBufferVertexConsumer;
 import net.minecraft.client.gui.DrawableHelper;

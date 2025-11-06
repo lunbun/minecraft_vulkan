@@ -1,14 +1,13 @@
 package io.github.lunbun.quasar.client.render.immediate;
 
-import io.github.lunbun.pulsar.PulsarApplication;
 import io.github.lunbun.pulsar.component.drawing.CommandBuffer;
 import io.github.lunbun.quasar.client.render.VulkanRenderer;
 
 public final class Immediates implements VulkanRenderer {
     @Override
-    public void init(PulsarApplication pulsar) {
+    public void init() {
         for (Immediate immediate : Immediate.VALUES) {
-            immediate.init(pulsar);
+            immediate.init();
         }
     }
 

@@ -104,17 +104,17 @@ public final class ImageUtils {
         }
     }
 
-    public static void copyBufferToImage(long buffer, long image, int width, int height, CommandBuffer commandBuffer) {
+    public static void copyBufferToImage(long buffer, long image, int x, int y, int width, int height, CommandBuffer commandBuffer) {
         try (MemoryStack stack = MemoryStack.stackPush()) {
             VkBufferImageCopy.Buffer region = VkBufferImageCopy.callocStack(1, stack);
             region.bufferOffset(0);
             region.bufferRowLength(0);
             region.bufferImageHeight(0);
             region.imageSubresource().aspectMask(VK10.VK_IMAGE_ASPECT_COLOR_BIT);
-            region.imageSubresource().mipLevel(0);
+                region.imageSubresource().mipLevel(0);
             region.imageSubresource().baseArrayLayer(0);
             region.imageSubresource().layerCount(1);
-            region.imageOffset(VkOffset3D.mallocStack(stack).set(0, 0, 0));
+            region.imageOffset(VkOffset3D.mallocStack(stack).set(x, y, 0));
             region.imageExtent(VkExtent3D.mallocStack(stack).set(width, height, 1));
 
             commandBuffer.copyBufferToImage(buffer, image, region);
@@ -122,8 +122,8 @@ public final class ImageUtils {
     }
 
     public static void uploadPixels(LogicalDevice device, PhysicalDevice physicalDevice, MemoryAllocator allocator,
-                                    CommandPool commandPool, QueueManager queues, int width, int height, int imageSize,
-                                    int format, ImageData image, ByteBuffer pixels, MemoryStack stack,
+                                    CommandPool commandPool, QueueManager queues, int x, int y, int width, int height,
+                                    int imageSize, int format, ImageData image, ByteBuffer pixels, MemoryStack stack,
                                     boolean useStagingBuffer) {
         if (useStagingBuffer) {
             BufferData stagingBuffer = BufferUtils.createBuffer(device, physicalDevice, allocator,
@@ -142,7 +142,7 @@ public final class ImageUtils {
 
                 transitionImageLayout(image.buffer, format, VK10.VK_IMAGE_LAYOUT_UNDEFINED,
                         VK10.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, commandBuffer);
-                copyBufferToImage(stagingBuffer.buffer, image.buffer, width, height, commandBuffer);
+                copyBufferToImage(stagingBuffer.buffer, image.buffer, x, y, width, height, commandBuffer);
                 transitionImageLayout(image.buffer, format, VK10.VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                         VK10.VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, commandBuffer);
             }

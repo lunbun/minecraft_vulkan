@@ -22,6 +22,7 @@ import io.github.lunbun.pulsar.util.shader.ShaderType;
 import io.github.lunbun.pulsar.util.uniform.DescriptorSetType;
 import io.github.lunbun.pulsar.util.vulkan.DataType;
 import io.github.lunbun.quasar.client.engine.framework.glfw.GLFWWindow;
+import io.github.lunbun.quasar.client.render.QuasarRenderer;
 import io.github.lunbun.quasar.client.render.VulkanRenderer;
 import it.unimi.dsi.fastutil.objects.ObjectArrayList;
 import org.joml.Matrix4f;
@@ -33,7 +34,6 @@ import java.util.Objects;
 
 // based off of the vulkan tutorial
 public final class TestRenderer implements VulkanRenderer {
-    public PulsarApplication pulsar;
     public RenderPass renderPass;
     public GraphicsPipeline graphicsPipeline;
     public Shader shader;
@@ -53,9 +53,7 @@ public final class TestRenderer implements VulkanRenderer {
     public List<Framebuffer> framebuffers;
 
     @Override
-    public void init(PulsarApplication pulsar) {
-        this.pulsar = pulsar;
-
+    public void init() {
         this.vertexBuilder = new Vertex.Builder();
         this.vertexBuilder.attribute(DataType.VEC2, 0);
         this.vertexBuilder.attribute(DataType.VEC3, 1);
@@ -68,11 +66,11 @@ public final class TestRenderer implements VulkanRenderer {
         };
         short[] indices = new short[] { 0, 1, 2, 2, 3, 0 };
 
-        Buffer vertexBuffer = pulsar.buffers.createVertexBuffer(4, 4L * this.vertexBuilder.sizeof(),
+        Buffer vertexBuffer = QuasarRenderer.pulsar.buffers.createVertexBuffer(4, 4L * this.vertexBuilder.sizeof(),
                 true);
-        Buffer indexBuffer = pulsar.buffers.createIndexBuffer(6, true);
-        pulsar.buffers.uploadVertices(vertexBuffer, vertices);
-        pulsar.buffers.uploadIndices(indexBuffer, indices);
+        Buffer indexBuffer = QuasarRenderer.pulsar.buffers.createIndexBuffer(6, true);
+        QuasarRenderer.pulsar.buffers.uploadVertices(vertexBuffer, vertices);
+        QuasarRenderer.pulsar.buffers.uploadIndices(indexBuffer, indices);
         this.mesh = new Mesh(vertexBuffer, indexBuffer);
 
         this.framebuffers = new ObjectArrayList<>();
@@ -86,7 +84,7 @@ public final class TestRenderer implements VulkanRenderer {
         this.view = new Matrix4f();
         this.proj = new Matrix4f();
 
-        this.descriptorSetLayout = pulsar.descriptorSetLayouts.createDescriptorSetLayout(new LayoutData[] {
+        this.descriptorSetLayout = QuasarRenderer.pulsar.descriptorSetLayouts.createDescriptorSetLayout(new LayoutData[] {
                         new LayoutData(0, DescriptorSetType.UNIFORM, ShaderType.VERTEX_SHADER),
                         new LayoutData(1, DescriptorSetType.IMAGE_SAMPLER, ShaderType.FRAGMENT_SHADER)
                 });
@@ -97,18 +95,18 @@ public final class TestRenderer implements VulkanRenderer {
                 Blend.Factor.ONE, Blend.Operator.ADD, Blend.Factor.ZERO
         );
 
-        this.texture = pulsar.textureLoader.loadFile(
+        this.texture = QuasarRenderer.pulsar.textureLoader.loadFile(
                 Objects.requireNonNull(ClassLoader.getSystemClassLoader().getResource("textures/texture.jpg"))
                         .toExternalForm());
-        this.textureSampler = pulsar.textureSamplers.createSampler(true);
+        this.textureSampler = QuasarRenderer.pulsar.textureSamplers.createSampler(true);
 
         this.frames = new ObjectArrayList<>();
         for (int i = 0; i < PulsarApplication.MAX_FRAMES_IN_FLIGHT; ++i) {
             TestFrame frame = new TestFrame();
             this.frames.add(frame);
-            frame.descriptorSet = pulsar.descriptorPool.allocateSet(this.descriptorSetLayout);
+            frame.descriptorSet = QuasarRenderer.pulsar.descriptorPool.allocateSet(this.descriptorSetLayout);
 
-            frame.uniformBuffer = pulsar.buffers.createUniformBuffer(uniformBuilder.sizeof(), false);
+            frame.uniformBuffer = QuasarRenderer.pulsar.buffers.createUniformBuffer(uniformBuilder.sizeof(), false);
             frame.descriptorSet.configure(new DescriptorSetConfiguration[] {
                     new UniformConfiguration(frame.uniformBuffer, 0),
                     new SamplerConfiguration(this.texture, this.textureSampler, 1)
@@ -130,15 +128,15 @@ public final class TestRenderer implements VulkanRenderer {
 
     @Override
     public void recreateFramebuffers() {
-        this.renderPass = this.pulsar.renderPasses.createRenderPass();
-        this.graphicsPipeline = this.pulsar.pipelines.createPipeline(this.shader, this.blendFunc,
+        this.renderPass = QuasarRenderer.pulsar.renderPasses.createRenderPass();
+        this.graphicsPipeline = QuasarRenderer.pulsar.pipelines.createPipeline(this.shader, this.blendFunc,
                 this.renderPass, this.descriptorSetLayout, this.vertexBuilder);
-        this.pulsar.framebuffers.createFramebuffers(this.renderPass, this.framebuffers);
+        QuasarRenderer.pulsar.framebuffers.createFramebuffers(this.renderPass, this.framebuffers);
     }
 
     @Override
     public void destroyFramebuffers() {
-        this.pulsar.framebuffers.destroy(this.framebuffers);
+        QuasarRenderer.pulsar.framebuffers.destroy(this.framebuffers);
     }
 
     @Override
@@ -148,13 +146,13 @@ public final class TestRenderer implements VulkanRenderer {
 
         this.model.rotation((float) (GLFWWindow.getTime() * Math.toRadians(90)), 0, 0, 1);
         this.view.setLookAt(2, 2, 2, 0, 0, 0, 0, 0, 1);
-        float aspectRatio = (float) this.pulsar.getSwapWidth() / this.pulsar.getSwapHeight();
+        float aspectRatio = (float) QuasarRenderer.pulsar.getSwapWidth() / QuasarRenderer.pulsar.getSwapHeight();
         this.proj.setPerspective((float) Math.toRadians(45), aspectRatio, 0.1f, 10.0f);
         this.proj.m11(-this.proj.m11());
         this.uniform.set(0, this.model);
         this.uniform.set(1, this.view);
         this.uniform.set(2, this.proj);
-        this.pulsar.buffers.uploadUniform(frame.uniformBuffer, this.uniform);
+        QuasarRenderer.pulsar.buffers.uploadUniform(frame.uniformBuffer, this.uniform);
 
         buffer.startRenderPass(this.renderPass, framebuffer);
         buffer.bindPipeline(this.graphicsPipeline);
